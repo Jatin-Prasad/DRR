@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DRR Screen</title>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <style>
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+        }
+        @media screen and (max-width: 600px) {
+            table, th, td {
+                width: 100%;
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+<h2>DRR Screen</h2>
+<button onclick="addRow()">Add New</button>
+<table id="drrTable">
+  <tr>
+    <th>Action ID</th>
+    <th>Start Date</th> 
+    <th>End Date</th>
+    <th>Dates Excluded</th>
+    <th>Number of Leads</th> 
+    <th>Month</th>
+    <th>Year</th>
+    <th>Number of Days</th>
+    <th>Count</th>
+    <th>Expected DRR</th>
+    <th>Expected Lead Count</th> 
+  </tr>
+
+</table>
+
+<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+<script>
+
+function addRow() {
+    var table = document.getElementById("drrTable");
+    var row = table.insertRow(-1);
+    
+    for (var i = 0; i < 11; i++) { // Changed the number of columns to 11
+        var cell = row.insertCell(i);
+        
+        if (i === 1 || i === 2 || i === 3) { // If the column is "Start Date", "End Date" or "Dates Excluded"
+            var input = document.createElement("input");
+            input.type = "text";
+            $(input).datepicker({
+                beforeShowDay: function(date) {
+                    var string = jQuery.datepicker.formatDate('yy-mm-dd', date);
+                    return [ row.cells[3].innerText.split(',').indexOf(string) == -1 ]
+                },
+                onSelect: function() {
+                    calculateNumberOfDays(row); // Calculate number of days when date is changed
+                }
+            });
+            cell.appendChild(input);
+        } else if (i === 4) { // If the column is "Number of Leads"
+            var input = document.createElement("input");
+            input.type = "number";
+            cell.appendChild(input);
+        } else if (i !== 7 && i !== 10) { // Make all cells except "Number of Days" and "Expected Lead Count" editable
+            cell.contentEditable = "true";
+        }
+    }
+}
+
+function calculateNumberOfDays(row) {
+    var startDate = $.datepicker.parseDate('mm/dd/yy', row.cells[1].firstChild.value);
+    var endDate = $.datepicker.parseDate('mm/dd/yy', row.cells[2].firstChild.value);
+    
+    if (startDate && endDate) {
+        if (startDate > endDate) {
+            alert("End date should not be before start date.");
+            return;
+        }
+
+        var numberOfDays = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+        
+        var excludedDates = row.cells[3].firstChild.value.split(',');
+        for (var i = 0; i < excludedDates.length; i++) {
+            var excludedDate = $.datepicker.parseDate('mm/dd/yy', excludedDates[i]);
+            
+            if (excludedDate && excludedDate >= startDate && excludedDate <= endDate) {
+                numberOfDays--;
+            }
+        }
+        
+        row.cells[7].innerText = numberOfDays;
+        
+        calculateLeadCount(row); // Calculate lead count after number of days is updated
+
+        // Calculate Month and Year from Start Date
+        var monthNames = ["January", "February", "March", "April", "May", "June",
+          "July", "August", "September", "October", "November", "December"];
+        row.cells[5].innerText = monthNames[startDate.getMonth()];
+        row.cells[6].innerText = startDate.getFullYear();
+        
+        // Calculate Expected DRR
+        row.cells[9].innerText = row.cells[8].innerText / numberOfDays;
+    }
+}
+
+function calculateLeadCount(row) {
+    var numberOfLeads = row.cells[4].firstChild.value;
+    var numberOfDays = row.cells[7].innerText;
+    
+    if (numberOfLeads && numberOfDays) {
+        row.cells[10].innerText = numberOfLeads / numberOfDays;
+    }
+}
+
+function saveData() {
+    var table = document.getElementById("drrTable");
+    
+    for (var i = 1, row; row = table.rows[i]; i++) {
+        calculateLeadCount(row); // Calculate lead count before saving data
+    }
+}
+
+
+    function cancel() {
+    var table = document.getElementById("drrTable");
+    var rowCount = table.rows.length;
+
+
+    if (rowCount > 1) {
+        table.deleteRow(rowCount - 1);
+    }
+}
+
+
+
+</script>
+
+<button onclick="saveData()">Save</button>
+
+<button onclick="cancel()">Cancel</button>
+
+
+</body>
+</html>
